@@ -9,6 +9,7 @@ jobs:
     steps:
       - name: Download vnt2.0.0
         run: |
+          # 修正下载地址
           wget -O vnt.tar.gz https://github.com/vnt-dev/vnt/releases/download/2.0.0/vnt-2.0.0-linux-aarch64.tar.gz
           tar zxf vnt.tar.gz
           mv vnt-2.0.0-linux-aarch64/vnt-cli vnt
@@ -20,14 +21,14 @@ jobs:
           VER=2.0.0
           REL=1
           ARCH=aarch64_cortex-a53
-          DIR=$NAME\_$VER-$REL\_$ARCH
+          DIR="${NAME}_${VER}-${REL}_${ARCH}"
 
-          mkdir -p $DIR/DEBIAN
-          mkdir -p $DIR/usr/bin
-          mkdir -p $DIR/etc/init.d
-          mkdir -p $DIR/etc/config
+          mkdir -p "$DIR/DEBIAN"
+          mkdir -p "$DIR/usr/bin"
+          mkdir -p "$DIR/etc/init.d"
+          mkdir -p "$DIR/etc/config"
 
-          cat > $DIR/DEBIAN/control << EOF
+          cat > "$DIR/DEBIAN/control" << EOF
           Package: vnt2
           Version: $VER-$REL
           Architecture: $ARCH
@@ -39,7 +40,7 @@ jobs:
           Description: VNT 2.0 virtual network tunnel
           EOF
 
-          cat > $DIR/etc/init.d/vnt << EOF
+          cat > "$DIR/etc/init.d/vnt" << 'EOF'
           #!/bin/sh /etc/rc.common
           USE_PROCD=1
           START=99
@@ -65,19 +66,19 @@ jobs:
           }
           EOF
 
-          chmod 755 $DIR/etc/init.d/vnt
+          chmod 755 "$DIR/etc/init.d/vnt"
 
-          cat > $DIR/etc/config/vnt << EOF
+          cat > "$DIR/etc/config/vnt" << EOF
           config main
                   option auth_key '123456'
                   option port '28976'
           EOF
 
-          cp vnt $DIR/usr/bin/
-          chmod 755 $DIR/usr/bin/vnt
+          cp vnt "$DIR/usr/bin/"
+          chmod 755 "$DIR/usr/bin/vnt"
 
-          cd $DIR
-          tar zcf ../$NAME\_$VER-$REL\_$ARCH.ipk ./
+          cd "$DIR"
+          tar zcf "../${NAME}_${VER}-${REL}_${ARCH}.ipk" --numeric-owner --owner=0 --group=0 *
           cd ..
 
       - name: Upload IPK
@@ -85,3 +86,4 @@ jobs:
         with:
           name: vnt2-ipk
           path: "*.ipk"
+
