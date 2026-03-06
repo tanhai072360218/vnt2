@@ -7,11 +7,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Download vnt2.0.0
+      - name: Download vnt 2.0.0 (aarch64)
         run: |
-          # 修正下载地址
-          wget -O vnt.tar.gz https://github.com/vnt-dev/vnt/releases/download/2.0.0/vnt-2.0.0-linux-aarch64.tar.gz
-          tar zxf vnt.tar.gz
+          # 1. 修正官方下载地址与格式
+          wget -O vnt.tar.xz https://github.com/vnt-dev/vnt/releases/download/2.0.0/vnt-2.0.0-linux-aarch64.tar.xz
+          # 2. 用 xJf 解压 xz 格式包
+          tar xJf vnt.tar.xz
           mv vnt-2.0.0-linux-aarch64/vnt-cli vnt
           chmod +x vnt
 
@@ -23,23 +24,26 @@ jobs:
           ARCH=aarch64_cortex-a53
           DIR="${NAME}_${VER}-${REL}_${ARCH}"
 
-          mkdir -p "$DIR/DEBIAN"
+          # 标准 OpenWrt IPK 结构（CONTROL 目录，非 DEBIAN）
+          mkdir -p "$DIR/CONTROL"
           mkdir -p "$DIR/usr/bin"
           mkdir -p "$DIR/etc/init.d"
           mkdir -p "$DIR/etc/config"
 
-          cat > "$DIR/DEBIAN/control" << EOF
+          # 修复 CONTROL 文件（OpenWrt 标准）
+          cat > "$DIR/CONTROL/control" << EOF
           Package: vnt2
           Version: $VER-$REL
           Architecture: $ARCH
-          Maintainer: build
+          Maintainer: GitHub Actions
           Depends: kmod-tun
           Section: net
           Priority: optional
           Homepage: https://github.com/vnt-dev/vnt
-          Description: VNT 2.0 virtual network tunnel
+          Description: VNT 2.0 virtual network tunnel for OpenWrt
           EOF
 
+          # 自启动脚本（PROCD 标准，适配 OpenWrt 24.10）
           cat > "$DIR/etc/init.d/vnt" << 'EOF'
           #!/bin/sh /etc/rc.common
           USE_PROCD=1
@@ -65,18 +69,20 @@ jobs:
             procd_close_instance
           }
           EOF
-
           chmod 755 "$DIR/etc/init.d/vnt"
 
+          # UCI 配置文件
           cat > "$DIR/etc/config/vnt" << EOF
           config main
                   option auth_key '123456'
                   option port '28976'
           EOF
 
+          # 复制二进制并赋权
           cp vnt "$DIR/usr/bin/"
           chmod 755 "$DIR/usr/bin/vnt"
 
+          # 标准 OpenWrt IPK 打包（CONTROL 目录）
           cd "$DIR"
           tar zcf "../${NAME}_${VER}-${REL}_${ARCH}.ipk" --numeric-owner --owner=0 --group=0 *
           cd ..
@@ -86,4 +92,3 @@ jobs:
         with:
           name: vnt2-ipk
           path: "*.ipk"
-
