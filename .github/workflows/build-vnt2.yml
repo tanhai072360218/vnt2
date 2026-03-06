@@ -9,14 +9,13 @@ jobs:
     steps:
       - name: Download vnt2 2.0.0 (aarch64)
         run: |
-          # 1. 下载正确的 aarch64 版本 zip 包
+          # 1. 下载 zip 包
           wget -O vnt2.zip https://github.com/vnt-dev/vnt/releases/download/2.0.0/vnt2-aarch64-unknown-linux-musl-2.0.0.zip
-          # 2. 解压 zip 包
-          unzip vnt2.zip
-          # 3. 进入解压后的目录，提取可执行文件并重命名
-          cd vnt2-aarch64-unknown-linux-musl-2.0.0
-          mv vnt2 ../vnt
-          chmod +x ../vnt
+          # 2. 解压，自动识别目录
+          unzip -q vnt2.zip
+          # 3. 用通配符找到可执行文件，直接复制出来
+          cp vnt2-*/vnt2 ./vnt
+          chmod +x vnt
 
       - name: Make IPK package
         run: |
@@ -32,49 +31,49 @@ jobs:
           mkdir -p "$DIR/etc/config"
 
           cat > "$DIR/CONTROL/control" << EOF
-          Package: vnt2
-          Version: $VER-$REL
-          Architecture: $ARCH
-          Maintainer: GitHub Actions
-          Depends: kmod-tun
-          Section: net
-          Priority: optional
-          Homepage: https://github.com/vnt-dev/vnt
-          Description: VNT2 2.0.0 virtual network tunnel for OpenWrt (aarch64)
-          EOF
+Package: vnt2
+Version: $VER-$REL
+Architecture: $ARCH
+Maintainer: GitHub Actions
+Depends: kmod-tun
+Section: net
+Priority: optional
+Homepage: https://github.com/vnt-dev/vnt
+Description: VNT2 2.0.0 virtual network tunnel for OpenWrt (aarch64)
+EOF
 
           cat > "$DIR/etc/init.d/vnt" << 'EOF'
-          #!/bin/sh /etc/rc.common
-          USE_PROCD=1
-          START=99
+#!/bin/sh /etc/rc.common
+USE_PROCD=1
+START=99
 
-          start_service() {
-            config_load vnt
-            config_get auth_key main auth_key "123456"
-            config_get port main port "28976"
+start_service() {
+  config_load vnt
+  config_get auth_key main auth_key "123456"
+  config_get port main port "28976"
 
-            cat > /tmp/vnt.json << JSON
-          {
-            "listen": ":$port",
-            "auth_key": "$auth_key",
-            "relay": ["https://relay.rustvnt.com"]
-          }
-          JSON
+  cat > /tmp/vnt.json << JSON
+{
+  "listen": ":$port",
+  "auth_key": "$auth_key",
+  "relay": ["https://relay.rustvnt.com"]
+}
+JSON
 
-            procd_open_instance
-            procd_set_param command /usr/bin/vnt
-            procd_set_param args -c /tmp/vnt.json
-            procd_set_param respawn
-            procd_close_instance
-          }
-          EOF
+  procd_open_instance
+  procd_set_param command /usr/bin/vnt
+  procd_set_param args -c /tmp/vnt.json
+  procd_set_param respawn
+  procd_close_instance
+}
+EOF
           chmod 755 "$DIR/etc/init.d/vnt"
 
           cat > "$DIR/etc/config/vnt" << EOF
-          config main
-                  option auth_key '123456'
-                  option port '28976'
-          EOF
+config main
+        option auth_key '123456'
+        option port '28976'
+EOF
 
           cp vnt "$DIR/usr/bin/"
           chmod 755 "$DIR/usr/bin/vnt"
