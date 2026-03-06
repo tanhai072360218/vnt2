@@ -13,9 +13,10 @@ jobs:
           wget -O vnt2.zip https://github.com/vnt-dev/vnt/releases/download/2.0.0/vnt2-aarch64-unknown-linux-musl-2.0.0.zip
           # 2. 解压 zip 包
           unzip vnt2.zip
-          # 3. 提取可执行文件并重命名（修正目录名）
-          mv vnt2-aarch64-unknown-linux-musl-2.0.0/vnt2 vnt
-          chmod +x vnt
+          # 3. 进入解压后的目录，提取可执行文件并重命名
+          cd vnt2-aarch64-unknown-linux-musl-2.0.0
+          mv vnt2 ../vnt
+          chmod +x ../vnt
 
       - name: Make IPK package
         run: |
